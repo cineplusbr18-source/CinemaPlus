@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CinemaPlus</title>
+
+<style>
+:root {
+    --bg: #0d0d0d;
+    --text: #ffffff;
+    --card: #1b1b1b;
+    --accent: red;
+}
+.light {
+    --bg: #ffffff;
+    --text: #000000;
+    --card: #efefef;
+    --accent: #d40000;
+}
+
+html, body {
+    margin:0; padding:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:Arial,sans-serif;
+    overflow-x:hidden;
+}
+
+/* FUNDO ANIMADO */
+#particles {
+    position:fixed;
+    width:100%; height:100%;
+    top:0; left:0;
+    z-index:-1;
+    overflow:hidden;
+    background:#0d0d0d;
+}
+.ball {
+    position:absolute;
+    width:12px; height:12px;
+    background:rgba(255,0,0,0.7);
+    border-radius:50%;
+    animation:moveBall linear infinite;
+}
+@keyframes moveBall {
+    from { transform:translate(0,0); }
+    to { transform:translate(200px,200px); }
+}
+
+/* CABEÇALHO */
+header {
+    background:#000;
+    padding:15px;
+    text-align:center;
+    font-size:26px;
+    font-weight:bold;
+    color:var(--accent);
+    box-shadow:0 0 10px #000;
+}
+
+/* LOGIN / REGISTRO */
+#authContainer {
+    display:flex; flex-direction:column;
+    align-items:center; padding:40px 20px;
+}
+input, button, select {
+    width:80%; padding:12px; margin:10px 0;
+    border-radius:8px; border:none;
+    font-size:16px;
+}
+button {
+    background:var(--accent);
+    color:white;
+    cursor:pointer;
+    transition:.3s;
+}
+button:hover {
+    transform:scale(1.05);
+    background:#b30000;
+}
+
+/* LISTA DE FILMES */
+#movies {
+    display:none;
+    padding:20px;
+    gap:15px;
+    grid-template-columns: repeat(auto-fill, minmax(150px,1fr));
+}
+.movie {
+    background:var(--card);
+    border-radius:10px;
+    overflow:hidden;
+    cursor:pointer;
+    transition:.2s;
+}
+.movie:hover { transform:scale(1.06); }
+.movie img { width:100%; height:220px; object-fit:cover; }
+.movie-title { padding:10px; text-align:center; }
+
+/* BOTÃO ADMIN */
+#adminBtn {
+    position:fixed;
+    bottom:20px; right:20px;
+    background:var(--accent); color:white;
+    width:60px; height:60px; border-radius:50%;
+    font-size:30px;
+    display:none;
+    align-items:center; justify-content:center;
+    cursor:pointer;
+    box-shadow:0 0 15px red;
+    transition:.3s;
+}
+#adminBtn:hover { transform:scale(1.1); }
+
+/* PAINÉIS */
+#adminPanel, #adminPanel2, #panelSelect {
+    display:none;
+    position:fixed; top:0; left:0;
+    width:100%; height:100%;
+    background:rgba(0,0,0,0.9);
+    padding:20px;
+    overflow-y:auto;
+    animation:fade .3s ease;
+}
+@keyframes fade { from { opacity:0; } to { opacity:1; } }
+.sectionBtn {
+    width:90%;
+    margin:auto;
+    padding:15px;
+    background:var(--accent);
+    border-radius:8px;
+    font-size:20px;
+    margin-top:20px;
+    cursor:pointer;
+    text-align:center;
+}
+
+/* CARDS USER */
+.userCard {
+    background:var(--card);
+    padding:10px;
+    margin:10px 0;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+.avatar {
+    width:50px; height:50px;
+    background:#444;
+    border-radius:50%;
+}
+
+/* CATEGORIAS */
+#categoriesMenu {
+    display:none;
+    overflow-x:auto;
+    gap:15px;
+    padding:10px;
+    background:#111;
+    white-space:nowrap;
+}
+.catBtn {
+    background:#222;
+    color:white;
+    border:none;
+    padding:8px 12px;
+    border-radius:10px;
+    font-size:14px;
+}
+.catBtn:active { background:#444; }
+
+/* LOADING */
+#loadingScreen {
+    position:fixed; top:0; left:0;
+    width:100%; height:100%;
+    background:rgba(0,0,0,.8);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+}
+.spinner {
+    width:60px; height:60px;
+    border-radius:50%;
+    border:6px solid #fff;
+    border-top-color:red;
+    animation:spin 1s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+
+<body>
+
+<div id="particles"></div>
+
+<header>🎬 CinemaPlus</header>
+
+<div id="loadingScreen"><div class="spinner"></div></div>
+
+<!-- LOGIN -->
+<div id="authContainer">
+<h2>Login / Registro</h2>
+<input id="email" placeholder="Seu e-mail">
+<input id="password" type="password" placeholder="Senha">
+<button onclick="registerUser()">Registrar</button>
+<button onclick="loginUser()">Entrar</button>
+</div>
+
+<input id="searchBar" style="display:none;width:90%;margin:auto"
+ placeholder="Pesquisar filmes..." oninput="filterMovies()">
+
+<!-- MENU DE CATEGORIAS -->
+<div id="categoriesMenu">
+    <button class="catBtn" onclick="filterByCategory('Todos')">Todos</button>
+    <button class="catBtn" onclick="filterByCategory('Ação')">Ação</button>
+    <button class="catBtn" onclick="filterByCategory('Aventura')">Aventura</button>
+    <button class="catBtn" onclick="filterByCategory('Terror')">Terror</button>
+    <button class="catBtn" onclick="filterByCategory('Comédia')">Comédia</button>
+    <button class="catBtn" onclick="filterByCategory('Suspense')">Suspense</button>
+    <button class="catBtn" onclick="filterByCategory('Drama')">Drama</button>
+    <button class="catBtn" onclick="filterByCategory('Romance')">Romance</button>
+    <button class="catBtn" onclick="filterByCategory('Ficção Científica')">Ficção</button>
+    <button class="catBtn" onclick="filterByCategory('Heróis')">Heróis</button>
+    <button class="catBtn" onclick="filterByCategory('Animação')">Animação</button>
+    <button class="catBtn" onclick="filterByCategory('Crime')">Crime</button>
+    <button class="catBtn" onclick="filterByCategory('Fantasia')">Fantasia</button>
+    <button class="catBtn" onclick="filterByCategory('Guerra')">Guerra</button>
+    <button class="catBtn" onclick="filterByCategory('Documentário')">Documentário</button>
+    <button class="catBtn" onclick="filterByCategory('Séries')">Séries</button>
+    <button class="catBtn" onclick="filterByCategory('Animes')">Animes</button>
+    <button class="catBtn" onclick="filterByCategory('Desenhos')">Desenhos</button>
+</div>
+
+<div id="movies"></div>
+
+<div id="adminBtn" onclick="openAdmin()">+</div>
+
+<!-- PAINEL SELEÇÃO -->
+<div id="panelSelect">
+<h2>Painel Administrativo</h2>
+<div class="sectionBtn" onclick="openPanel1()">📽 Adicionar Filmes</div>
+<div class="sectionBtn" onclick="openPanel2()">💳 Gerenciar Planos</div>
+<br><button onclick="closeAdmin()">Sair</button>
+</div>
+
+<!-- PAINEL 1 -->
+<div id="adminPanel">
+<h2>Adicionar Filme</h2>
+<input id="title" placeholder="Título do Filme">
+<input id="urlImage" placeholder="URL da Capa">
+<input id="urlVideo" placeholder="URL do Vídeo/Filme">
+
+<!-- SELECT DE CATEGORIAS -->
+<select id="category" multiple size="12" style="width:90%;padding:10px;border-radius:8px;">
+    <option value="Ação">Ação</option>
+    <option value="Aventura">Aventura</option>
+    <option value="Terror">Terror</option>
+    <option value="Comédia">Comédia</option>
+    <option value="Suspense">Suspense</option>
+    <option value="Drama">Drama</option>
+    <option value="Romance">Romance</option>
+    <option value="Ficção Científica">Ficção Científica</option>
+    <option value="Heróis">Heróis</option>
+    <option value="Animação">Animação</option>
+    <option value="Crime">Crime</option>
+    <option value="Fantasia">Fantasia</option>
+    <option value="Guerra">Guerra</option>
+    <option value="Documentário">Documentário</option>
+    <option value="Séries">Séries</option>
+    <option value="Animes">Animes</option>
+    <option value="Desenhos">Desenhos</option>
+</select>
+
+<button onclick="addMovie()">Adicionar Filme</button>
+<h3>Filmes adicionados</h3>
+<div id="adminMovies"></div>
+<button onclick="backToSelect()">Voltar</button>
+</div>
+
+<!-- PAINEL 2 -->
+<div id="adminPanel2">
+<h2>Gerenciar Planos</h2>
+<div id="usersList"></div>
+<button onclick="backToSelect()">Voltar</button>
+</div>
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+    apiKey:"AIzaSyATrXj1gpBlZ0iN16WivHZC4hewBrCA_-o",
+    authDomain:"cinemaplus-6b09f.firebaseapp.com",
+    projectId:"cinemaplus-6b09f",
+    storageBucket:"cinemaplus-6b09f.appspot.com",
+    messagingSenderId:"485111238020",
+    appId:"1:485111238020:web:1fee238d31ce9ddf3be1d1"
+};
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUser="";
+
+/* LOADING */
+function showLoading(){ loadingScreen.style.display="flex"; }
+function hideLoading(){ loadingScreen.style.display="none"; }
+
+/* FUNDO BOLINHAS */
+for(let i=0;i<35;i++){
+    let b=document.createElement("div");
+    b.className="ball";
+    b.style.left=Math.random()*100+"%";
+    b.style.top=Math.random()*100+"%";
+    b.style.animationDuration=(3+Math.random()*5)+"s";
+    b.style.background=`hsl(${Math.random()*360},70%,50%)`;
+    particles.appendChild(b);
+}
+
+/* REGISTRO */
+function registerUser(){
+    const emailV=email.value;
+    const pass=password.value;
+    if(!emailV || !pass) return alert("Preencha tudo");
+    showLoading();
+    auth.createUserWithEmailAndPassword(emailV,pass)
+    .then(()=>{
+        db.collection("users").doc(emailV).set({
+            plano:"nenhum",
+            avatar:"default",
+            diasRestantes:0
+        });
+        hideLoading();
+        alert("Registrado!");
+    }).catch(e=>{ hideLoading(); alert(e.message); });
+}
+
+/* LOGIN */
+function loginUser(){
+    const emailV=email.value, pass=password.value;
+    showLoading();
+    auth.signInWithEmailAndPassword(emailV,pass)
+    .then(()=>{
+        currentUser=emailV;
+        authContainer.style.display="none";
+        movies.style.display="grid";
+        searchBar.style.display="block";
+        categoriesMenu.style.display="flex";
+        adminBtn.style.display="flex";
+        loadMovies().then(()=> hideLoading());
+    }).catch(e=>{ hideLoading(); alert(e.message); });
+}
+
+/* CARREGAR FILMES */
+async function loadMovies(){
+    movies.innerHTML="";
+    return db.collection("filmes").get().then(snap=>{
+        snap.forEach(doc=>{
+            let f=doc.data();
+            movies.innerHTML += `
+            <div class='movie' onclick="openMovie('${f.link}')">
+                <img src="${f.image}">
+                <div class="movie-title">${f.title}</div>
+            </div>`;
+        });
+    });
+}
+
+/* ABRIR FILME */
+function openMovie(url){
+    db.collection("users").doc(currentUser).get().then(doc=>{
+        let u=doc.data();
+        if(u.plano !== "ativo"){
+            let msg = encodeURIComponent("Olá, quero ativar meu plano semanal no CinemaPlus!");
+            window.open(`https://wa.me/5592984016424?text=${msg}`, "_blank");
+            return;
+        }
+        window.open(url, "_blank");
+    });
+}
+
+/* FILTRAR FILMES POR NOME */
+function filterMovies(){
+    let q=searchBar.value.toLowerCase();
+    document.querySelectorAll(".movie").forEach(m=>{
+        m.style.display = m.innerText.toLowerCase().includes(q) ? "block" : "none";
+    });
+}
+
+/* FILTRAR POR CATEGORIA */
+function filterByCategory(cat) {
+    let moviesDiv = document.getElementById("movies");
+    moviesDiv.innerHTML = "";
+
+    if(cat === "Todos"){
+        loadMovies();
+        return;
+    }
+
+    db.collection("filmes").get().then(res=>{
+        res.forEach(doc=>{
+            let f = doc.data();
+
+            if((f.categories || []).includes(cat)){
+                moviesDiv.innerHTML += `
+                <div class='movie' onclick="openMovie('${f.link}')">
+                    <img src="${f.image}">
+                    <div class="movie-title">
+                        ${f.title}<br>
+                        <small style="color:gray">${(f.categories || []).join(", ")}</small>
+                    </div>
+                </div>`;
+            }
+        });
+
+        if(moviesDiv.innerHTML === ""){
+            moviesDiv.innerHTML = "<p style='color:white;padding:20px;'>Nenhum filme encontrado nessa categoria.</p>";
+        }
+    });
+}
+
+/* ADMIN */
+function openAdmin(){
+    let p=prompt("Senha do admin:");
+    if(p!=="juria@978") return alert("Senha incorreta");
+    panelSelect.style.display="block";
+}
+function closeAdmin(){
+    panelSelect.style.display="none";
+    adminPanel.style.display="none";
+    adminPanel2.style.display="none";
+}
+function backToSelect(){
+    adminPanel.style.display="none";
+    adminPanel2.style.display="none";
+    panelSelect.style.display="block";
+}
+
+/* PAINEL 1 — FILMES */
+function openPanel1(){
+    panelSelect.style.display="none";
+    adminPanel.style.display="block";
+    loadAdminMovies();
+}
+
+function addMovie(){
+    let t=title.value;
+    let img=urlImage.value;
+    let vid=urlVideo.value;
+
+    let selected = Array.from(category.selectedOptions).map(opt => opt.value);
+
+    if(!t || !img || !vid || selected.length === 0)
+        return alert("Preencha todos os campos!");
+
+    showLoading();
+    db.collection("filmes").add({
+        title:t,
+        image:img,
+        link:vid,
+        categories:selected,
+        criadoEm:Date.now()
+    })
+    .then(()=>{
+        hideLoading();
+        alert("Filme adicionado!");
+        loadMovies();
+        loadAdminMovies();
+    });
+}
+
+function loadAdminMovies(){
+    adminMovies.innerHTML="";
+    db.collection("filmes").get().then(snap=>{
+        snap.forEach(doc=>{
+            let f=doc.data();
+            adminMovies.innerHTML += `
+                <div style="margin:10px 0;">
+                    ${f.title} 
+                    <button onclick="deleteMovie('${doc.id}')">Excluir</button>
+                </div>`;
+        });
+    });
+}
+
+function deleteMovie(id){
+    showLoading();
+    db.collection("filmes").doc(id).delete().then(()=>{
+        hideLoading();
+        alert("Filme removido");
+        loadMovies();
+        loadAdminMovies();
+    });
+}
+
+/* PAINEL 2 — PLANOS */
+function openPanel2(){
+    panelSelect.style.display="none";
+    adminPanel2.style.display="block";
+    loadUsers();
+}
+
+function loadUsers(){
+    usersList.innerHTML="";
+    db.collection("users").get().then(snap=>{
+        snap.forEach(doc=>{
+            let u=doc.data();
+            usersList.innerHTML += `
+                <div class="userCard">
+                    <div class="avatar"></div>
+                    <div><b>${doc.id}</b><br>Plano: ${u.plano}<br>Dias: ${u.diasRestantes}</div>
+                    <button onclick="ativar('${doc.id}')">Liberar 7 dias</button>
+                    <button onclick="bloquear('${doc.id}')">Bloquear</button>
+                </div>`;
+        });
+    });
+}
+
+function ativar(email){
+    db.collection("users").doc(email).update({
+        plano:"ativo",
+        diasRestantes:7
+    });
+    loadUsers();
+}
+
+function bloquear(email){
+    db.collection("users").doc(email).update({
+        plano:"nenhum",
+        diasRestantes:0
+    });
+    loadUsers();
+}
+</script>
+</body>
+</html>
